@@ -4,10 +4,15 @@
 
 ## Используемые технологии
 
-**Софт**
-* Python
-  * Pedalboard - звуковые эффекты
-* PulseAudio драйвер для роутинга звука
+**Софт** - Python  
+Звук
+  * ~~Pedalboard - звуковые эффекты~~ - не поддерживается на armv6 архитектуре
+  * ~~pydub~~, ~~dawdreamer~~, 
+  * pysndfx - обёртка sox
+
+**Драйвера**
+* sox - Sound eXchange : universal sound sample translator
+* PulseAudio роутинг звука
 
 **Железо**
 * raspberry pi 3b
