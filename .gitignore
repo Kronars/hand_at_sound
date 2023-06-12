@@ -1,1 +1,4 @@
 venv
+deps/supercollider
+!deps/supercollider
+deps/supercollider/*
