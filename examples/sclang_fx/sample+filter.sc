@@ -1,59 +1,61 @@
 s.quit
 s.boot
 s.freeAll
-currentEnvironment;
+Server.killAll
 
 (
 // --------------------- Эффекты -----------------------
-// Проигрывание трека в два канала
-SynthDef(\playWav, { |fxBus, bufnum, rate=1, dryWet = 0.5|
+// Проигрывание трека в два канала c эффектами
+~fxRatio = { |out, sigBefore, sigAfter, ratio|
+	Out.ar(out, sigBefore * (1 - ratio));
+	Out.ar(out, sigAfter * ratio);
+};
+
+SynthDef(\playWav, { |fxBus, bufnum, rate=1, ratio=1|
 	var sig;
 	sig = PlayBuf.ar(2, bufnum, rate);
-
-	Out.ar(0, sig * dryWet);
-	Out.ar(fxBus,  sig * (1 - dryWet));
+	Out.ar(fxBus, sig * (1 - ratio));
+	Out.ar(fxBus,  sig * ratio);
 }).add;
 
 // Лоу пасс фильтр
 SynthDef(\lowPassFilter, {
-    |fxBus, out=0, freq = 2000, rq = 0.5|
+    |fxBus, out=0, freq = 2000, rq = 0.5, ratio = 0|
 	var sig;
 	sig = In.ar(fxBus, 2);
 	sig = RLPF.ar(sig, MouseX.kr(-10, 6000), 0.3);
-
-	Out.ar(out, sig);
+	~fxRatio.value(out, In.ar(fxBus, 2), sig, ratio);
 }).add;
 
 // Делей
-SynthDef(\delay, { |in, out = 0, delay = 0.25|
-    Out.ar(
-        out,
-        DelayN.ar(
-            In.ar(in, 2),
-            delay,
-            delay
-        )
-    )
+SynthDef(\delay, { |fxBus, out=0, delay = 0.25, ratio = 0|
+	var sig;
+	sig = In.ar(fxBus, 2);
+	sig = DelayL.ar(sig, delay, delay);
+	~fxRatio.value(fxBus, In.ar(fxBus, 2), sig, ratio);
+/*	Out.ar(
+		fxBus,
+		DelayN.ar( In.ar(fxBus, 2), delay, delay )
+		)*/
 }).add;
 
 // Реверб
-SynthDef(\reverb, { |in, out=0, dryWet, room=0.5|
+SynthDef(\reverb, { |fxBus, out=0, ratio=0, room=0.5|
 	var sig;
-	sig = In.ar(in, 2);
-	sig = FreeVerb.ar(sig, MouseY.kr(1, 0), room);
-	Out.ar(out, sig);
+	sig = In.ar(fxBus, 2);
+	sig = FreeVerb.ar(sig, 1, room);
+	~fxRatio.value(fxBus, In.ar(fxBus, 2), sig, ratio);
+	// Out.ar(fxBus, sig);
 }).add;
 
 // Дисторшн
-SynthDef(\dist, { |fxBus, dryOut=0, gain=0.0, bias=0.8|
+SynthDef(\dist, { |fxBus, out=0, gain=0.0, bias=1, ratio=0|
 	var sig;
 	sig = In.ar(fxBus, 2);
 	sig = AnalogVintageDistortion.ar(sig, gain, bias);
-
-	Out.ar(dryOut, sig);
+	~fxRatio.value(fxBus, In.ar(fxBus, 2), sig, ratio);
 }).add;
 )
-
 
 
 (
@@ -62,44 +64,21 @@ SynthDef(\dist, { |fxBus, dryOut=0, gain=0.0, bias=0.8|
 ~bus = Bus.audio(s, 2);
 // Буффер с треком
 ~buf = Buffer.read(s, Platform.resourceDir +/+ "sounds/Aquarius.wav");
-// Группы воспроизведения
-~src = Group.new;
-~fx  = Group.after(~src);
-)
 
 
-(
 // -------------------- Запуск --------------------------
 // Запуск с эффектами в 0
-// ~dely = Synth(\delay,  [\in, ~bus, \delay, 0], ~fx);
-// ~revb = Synth(\reverb, [\in, ~bus, \room, 0], ~fx);
-// ~dist = Synth(\dist,   [\fxBus, ~bus, \gain, 0], ~fx);
-~fltr = Synth(\lowPassFilter, [\fxBus, ~bus], ~fx);
+~fltr = Synth(\lowPassFilter,        [\fxBus, ~bus]);
+~dist = Synth.before(~fltr, \dist,   [\fxBus, ~bus]);
+~dely = Synth.before(~fltr, \delay,  [\fxBus, ~bus]);
+~revb = Synth.before(~fltr, \reverb, [\fxBus, ~bus]);
 
-~smpl = Synth(\playWav, [\fxBus, ~bus, \bufnum, ~buf, \dryWet, 1], ~src);
+Synth.head(nil, \playWav, [\fxBus, ~bus, \bufnum, ~buf]);
 )
 
+~fltr.set(\ratio, 1);
+~dist.set(\ratio, 0, \bias, 0.5, \gain, 0.2);
+~revb.set(\ratio, 1, \room, 0.7);
+~dely.set(\ratio, 0.4, \delay, 0.23);
 
-// Влючение эффектов
-~smpl.set(\dryWet, 0);
-
-// Реверберации
-~revb = Synth(\reverb, [\in, ~bus, \room, 0], ~fx);
-~revb.set(\room, 1);
-
-// Делей
-~dely = Synth(\delay,  [\in, ~bus, \delay, 0], ~fx);
-~dely.set(\delay, 1);
-
-// Дисторшен
-~dist = Synth(\dist,   [\fxBus, ~bus, \gain, 0], ~fx);
-~dist.set(\gain, 0, \bias, 0.7);
-~dist.set(\dryOut, 0);
-
-// Выкл
-~smpl.set(\dryWet, 1);
-// Вкл
-~smpl.set(\dryWet, 0);
-
-
-s.freeAll
+s.plotTree
