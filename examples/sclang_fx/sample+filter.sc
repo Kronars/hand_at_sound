@@ -7,15 +7,15 @@ Server.killAll
 // --------------------- Эффекты -----------------------
 // Проигрывание трека в два канала c эффектами
 ~fxRatio = { |out, sigBefore, sigAfter, ratio|
-	Out.ar(out, sigBefore * (1 - ratio));
-	Out.ar(out, sigAfter * ratio);
+	Out.ar(out, 0.25 * sigBefore * (1 - ratio));         // 0.25 - костыль что бы нормализовать уровень громкости
+	Out.ar(out, 0.25 * sigAfter * ratio);
 };
 
 SynthDef(\playWav, { |fxBus, bufnum, rate=1, ratio=1|
 	var sig;
 	sig = PlayBuf.ar(2, bufnum, rate);
-	Out.ar(fxBus, sig * (1 - ratio));
-	Out.ar(fxBus,  sig * ratio);
+	// Out.ar(fxBus, sig * (1 - ratio));
+	Out.ar(fxBus,  sig);
 }).add;
 
 // Лоу пасс фильтр
@@ -33,10 +33,6 @@ SynthDef(\delay, { |fxBus, out=0, delay = 0.25, ratio = 0|
 	sig = In.ar(fxBus, 2);
 	sig = DelayL.ar(sig, delay, delay);
 	~fxRatio.value(fxBus, In.ar(fxBus, 2), sig, ratio);
-/*	Out.ar(
-		fxBus,
-		DelayN.ar( In.ar(fxBus, 2), delay, delay )
-		)*/
 }).add;
 
 // Реверб
@@ -76,7 +72,7 @@ SynthDef(\dist, { |fxBus, out=0, gain=0.0, bias=1, ratio=0|
 Synth.head(nil, \playWav, [\fxBus, ~bus, \bufnum, ~buf]);
 )
 
-~fltr.set(\ratio, 1);
+~fltr.set(\ratio, 0);
 ~dist.set(\ratio, 0, \bias, 0.5, \gain, 0.2);
 ~revb.set(\ratio, 1, \room, 0.7);
 ~dely.set(\ratio, 0.4, \delay, 0.23);
