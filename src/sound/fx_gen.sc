@@ -8,17 +8,20 @@
 	// не ебу как зароутить без воспроизведения на каждом эффекте
 };
 
-// Воспроизведение трека по пути
-SynthDef(\playWav, { |fxBus, path, rate=1|
-	var sig, buf;
-	buf = Buffer.read(s, path);
-	sig = PlayBuf.ar(2, buf, doneAction: Done.freeSelf);
-	// Out.ar(fxBus, sig);
-	Out.ar(0, sig);
-}).add;
+// Нерабочее воспроизведение трека по пути
+// SynthDef(\playWav, { |fxBus, path, rate=1|
+// 	var sig, buf;
+// 	buf = Buffer.read(s, path);
+// 	sig = PlayBuf.ar(2, buf, doneAction: Done.freeSelf);
+// 	// Out.ar(fxBus, sig);
+// 	Out.ar(0, sig);
+// }).add;
 
-// Попытка запустить из буффера
-// Synth.new(\playWav, [\fxBus, ~bus, \path, "D:/src/Projects/hand_at_sound/examples/soundCheck/Aquarius.wav"]);
+
+// Чтение со внешнего источника
+SynthDef(\readSound, { |fxBus, input|
+	Out.ar(fxBus, SoundIn.ar(input));
+}).add;
 
 // Лоу пасс фильтр
 SynthDef(\lowPassFilter, {
@@ -53,7 +56,6 @@ SynthDef(\dist, { |fxBus, out=0, gain=0.0, bias=1, ratio=0|
 	~fxRatio.value(fxBus, In.ar(fxBus, 2), sig, ratio);
 }).add;
 
-
 // ------------------ Инициализация ---------------------
 // Шина аудиопотока
 ~bus = Bus.audio(s, 2);
@@ -66,10 +68,62 @@ SynthDef(\dist, { |fxBus, out=0, gain=0.0, bias=1, ratio=0|
 ~dely = Synth.before(~dist, \delay,  [\fxBus, ~bus]);
 ~revb = Synth.before(~dely, \reverb, [\fxBus, ~bus]);
 
-Synth.head(nil, \playWav, [\fxBus, ~bus, \bufnum, ~buf]);
+Synth.head(nil, \readSound, [\fxBus, ~bus, \input, 1]);
 
+// s.boot
 
-// ~fltr.set(\ratio, 1);
+// Посмотреть аудио входы
+/*ServerOptions.inDevices.do { |elem|
+	elem.postln;
+};*/
+
+// ~fltr.set(\ratio, 1, \freq, 2000);
 // ~dist.set(\ratio, 0, \bias, 0.5, \gain, 0.2);
 // ~revb.set(\ratio, 1, \room, 0.7);
-// ~dely.set(\ratio, 0.4, \delay, 0.23);
+// ~dely.set(\ratio, 1, \delay, 0.25);
+
+// ------------------ OSC обработчики -------------------
+
+~all_fx = { |ratio|
+	~fltr.set(\ratio, ratio);
+	~dist.set(\ratio, ratio);
+	~dely.set(\ratio, ratio);
+	~revb.set(\ratio, ratio);
+};
+
+// ~all_fx.value(0);
+
+OSCFunc({|msg, time, addr, recvPort|
+	~all_fx.value(msg[1]);
+}, "/fx/all/dry-wet" );
+
+
+OSCFunc({|msg, time, addr, recvPort|
+	~fltr.set(\freq, msg[1]);
+}, "/fx/filter/freq" );
+
+OSCFunc({|msg, time, addr, recvPort|
+	~fltr.set(\ratio, msg[1]);
+}, "/fx/filter/dry-wet" );
+
+
+OSCFunc({|msg, time, addr, recvPort|
+	~dist.set(\bias, msg[1]);
+}, "/fx/distort/bias" );
+
+OSCFunc({|msg, time, addr, recvPort|
+	~dist.set(\ratio, msg[1]);
+}, "/fx/distort/dry-wet" );
+
+
+OSCFunc({|msg, time, addr, recvPort|
+	~dely.set(\ratio, msg[1]);
+}, "/fx/delay/dry-wet" );
+
+OSCFunc({|msg, time, addr, recvPort|
+	~revb.set(\ratio, msg[1]);
+}, "/fx/reverb/dry-wet" );
+
+// Тест
+// m = NetAddr("127.0.0.1", NetAddr.langPort); // loopback
+// m.sendMsg("/fx/all/dry-wet", 0.1);

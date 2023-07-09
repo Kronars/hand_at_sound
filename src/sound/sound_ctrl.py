@@ -4,10 +4,12 @@ from time import sleep
 import subprocess
 
 from pygame import mixer
+from pythonosc.udp_client import SimpleUDPClient
 
 
 TIMEOUT = 10
-PORT = "8081"
+IP = "127.0.0.1"
+PORT = "57120"
 
 # Управление sc
 def sc_status(proc: subprocess.Popen) -> tuple[str, str]:
@@ -37,12 +39,12 @@ def sc_boot() -> subprocess.Popen:
             elif "failed to open UDP socket: address in use." in line:
                 raise ConnectionError(f'На порту {PORT} уже запущен sc - убей его - sclang Server.killAll\n{msg}')
             elif time.time() - start_time > TIMEOUT:
-                raise TimeoutError(f'SuperCollider не запустился в течение 10 секунд:\n{msg}')
+                raise TimeoutError(f'SuperCollider не запустился в течение {TIMEOUT} секунд:\n{msg}')
     except Exception as e:
         sc_unplug(proc)
         raise Exception('[Err] При запуске sc произошла ошибка, sc убит:', msg)
         
-    raise ConnectionError(f'Неизвестная ошибка при запуске SuperCollider, лог:\n{"n".join(msg)}')
+    raise ConnectionError(f'Неизвестная ошибка при запуске SuperCollider, лог:\n{msg}')
 
 
 # Обработка внешних комманд
@@ -51,6 +53,7 @@ def read_stdin():
 
 def cmd_handler():
     """Роутинг команд"""
+
 
 class Player:
     '''Управление воспроизведением
@@ -79,39 +82,43 @@ class Player:
 
         
     def pause(self):
-        ''''''
         self.track.pause()
         self.is_pause = True
 
     def stop(self):
-        ''''''
         self.track.stop()
         self.is_pause = True
 
 
-# Команды sc серверу
-def fx_filter(freq: int, ratio: float):
-    """Частота от 20 до 20000"""                  # TODO управление частотой нелинейно в процентах
+class Osc:
+    '''Команды sc серверу'''
+    client: SimpleUDPClient
+    
+    def __init__(self, ip, port):
+        self.client = SimpleUDPClient(ip, int(port))     # ? Обработка ошибок
 
-def fx_distort(bias: float, ratio: float):
-    "bias - 0 ~ 7"
+    def fx_filter(self, freq: int=None, ratio: float=None):
+        """Частота от 20 до 20000"""                # TODO управление частотой нелинейно в процентах
+        if freq:
+            self.client.send_message('/fx/filter/freq', freq)
+        if ratio:
+            self.client.send_message('/fx/filter/dry-wet', ratio)
 
-def fx_delay(ratio: float):
-    """"""
+    def fx_distort(self, bias: float, ratio: float):
+        "bias - 0 ~ 2"
+        if bias:
+            self.client.send_message('/fx/distort/bias', bias)
+        if ratio:
+            self.client.send_message('/fx/distort/dry-wet', ratio)
 
-def fx_reverb(ratio: float):
-    """"""
+    def fx_delay(self, ratio: float):
+        self.client.send_message('/fx/delay/dry-wet', ratio)
 
-# Управляющий цикл
+    def fx_reverb(self, ratio: float):
+        self.client.send_message('/fx/reverb/dry-wet', ratio)
+
+
 def main():
-    p = Player()
-    p.play("D:\src\Projects\hand_at_sound\examples\soundCheck\Aquarius.wav")
-    sleep(4)
-    p.pause()
-    sleep(2)
-    p.play("D:\src\Projects\hand_at_sound\examples\soundCheck\Aquarius.wav")
-    sleep(2)
-    p.stop()
-
+    pass
 
 main()

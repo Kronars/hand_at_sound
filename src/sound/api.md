@@ -6,16 +6,28 @@
 не веб сервис пилим же, зачем усложнять?  
 
 **Комманды:**
-1. Проверка готовности, три состояния: ready, booting, error
+1. Проверка готовности, три состояния: ready, booting, errori
 2. Управление треками
    1. Старт воспроизведения - путь до трека
    2. Пауза
    3. Остановка
 3. Управление эффектами
-   1. Вкл/выкл все
+   1. Все эффекты - dry/wet
    2. Фильтр   - freq, dry/wet
    3. Дисторшн - bias, dry/wet
    4. Делей    - dry/wet
    5. Реверб   - dry/wet
 
+**OSC урлы**
+
+`/fx/all/dry-wet`  
+
+`/fx/filter/dry-wet`  
+`/fx/filter/freq`    
+
+`/fx/distort/dry-wet`  
+`/fx/distort/bias`    
+
+`/fx/delay/dry-wet`    
+`/fx/reverb/dry-wet`  
 
