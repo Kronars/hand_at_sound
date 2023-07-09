@@ -1,6 +1,10 @@
-# from pygame import mixer
+import os
 import time
+from time import sleep
 import subprocess
+
+from pygame import mixer
+
 
 TIMEOUT = 10
 PORT = "8081"
@@ -48,6 +52,43 @@ def read_stdin():
 def cmd_handler():
     """Роутинг команд"""
 
+class Player:
+    '''Управление воспроизведением
+    Что бы не создать несколько плееров - методы статичны'''
+    track: mixer.Channel
+    is_pause: bool = False
+
+    def __init__(self) -> None:
+        mixer.init()
+
+    def play(self, path: str):
+        '''Воспроизведение указанного файла'''
+        if not os.path.exists(path):
+            print(f"[Warning] Несуществующий путь к треку - {path}")
+            return
+        elif not (path[-4:] in ['.wav', '.ogg']):
+            print(f"[Warning] Неподдерживаемый тип файла - {path}")
+            return
+
+        if self.is_pause:
+            self.track.unpause()
+            self.pause = False
+        else:
+            self.track = mixer.Sound(path).play()
+            self.is_pause = True
+
+        
+    def pause(self):
+        ''''''
+        self.track.pause()
+        self.is_pause = True
+
+    def stop(self):
+        ''''''
+        self.track.stop()
+        self.is_pause = True
+
+
 # Команды sc серверу
 def fx_filter(freq: int, ratio: float):
     """Частота от 20 до 20000"""                  # TODO управление частотой нелинейно в процентах
@@ -63,9 +104,14 @@ def fx_reverb(ratio: float):
 
 # Управляющий цикл
 def main():
-    ps = sc_boot()
-    time.sleep(3)
-    sc_unplug(ps)
+    p = Player()
+    p.play("D:\src\Projects\hand_at_sound\examples\soundCheck\Aquarius.wav")
+    sleep(4)
+    p.pause()
+    sleep(2)
+    p.play("D:\src\Projects\hand_at_sound\examples\soundCheck\Aquarius.wav")
+    sleep(2)
+    p.stop()
 
 
 main()
