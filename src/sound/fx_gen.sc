@@ -70,7 +70,7 @@ SynthDef(\dist, { |fxBus, out=0, gain=0.0, bias=1, ratio=0|
 
 Synth.head(nil, \readSound, [\fxBus, ~bus, \input, 1]);
 
-// s.boot
+// Server.killAll
 
 // Посмотреть аудио входы
 /*ServerOptions.inDevices.do { |elem|

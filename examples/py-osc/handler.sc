@@ -11,8 +11,7 @@ SynthDef(\test, { |freq=440|
 o = OSCFunc.new(
 	{
 		|msg, time, addr, recvPort|
-		// ~test.set(msg);      // Увы но не работает, надо пересоздавать
-		~test = Synth(\test, [\freq, msg]);
+		~test.set(\freq, msg);
 	},
 	'/track/select'
 );
@@ -20,4 +19,4 @@ o = OSCFunc.new(
 o.free
 
 m = NetAddr("127.0.0.1", NetAddr.langPort); // loopback
-m.sendMsg("/track/select", 440);
+m.sendMsg("/track/select", 1100);

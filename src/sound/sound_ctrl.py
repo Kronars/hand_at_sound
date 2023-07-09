@@ -7,6 +7,7 @@ from pygame import mixer
 from pythonosc.udp_client import SimpleUDPClient
 
 
+SC_FX_PATH = r"D:\src\Projects\hand_at_sound\src\sound\fx_gen.sc"
 TIMEOUT = 10
 IP = "127.0.0.1"
 PORT = "57120"
@@ -46,6 +47,8 @@ def sc_boot() -> subprocess.Popen:
         
     raise ConnectionError(f'Неизвестная ошибка при запуске SuperCollider, лог:\n{msg}')
 
+def run_sc_fx():
+    proc = subprocess.Popen(['sclang', SC_FX_PATH])   # TODO переделать на относитеьлный путь
 
 # Обработка внешних комманд
 def read_stdin():
@@ -119,6 +122,8 @@ class Osc:
 
 
 def main():
-    pass
+    # sc = sc_boot()
+    osc = Osc(IP, PORT)
+    osc.fx_filter(100, 1)
 
 main()
